@@ -12,11 +12,9 @@ In the project directory, you can run:
 
 Provide a simple playlist file of favourite artists named top-artists.txt with the following format:
 
-artist name - track title
-
-artist name - track title
-
-artist name - track title
+artist name - track title<br />
+artist name - track title<br />
+artist name - track title<br />
 
 It will search discogs for the track and from that infer the correct artist profile (to circumvent duplicate artist names). Ids for each 
 discogs artist profile are then stored in a file artist-ids.txt
@@ -25,10 +23,10 @@ The artist is found by looking up the track name on discogs, sometimes messy ID3
 can cause it fail. You can provide several tracks for each artist (order top-artists.txt by artist name) and if the first fails it will try 
 the next, then the next and so on until it finds a match for the artist. 
 
-If none of the provided tracks for a particular artist return a matching discogs profile you can:
-A. Add more/different tracks from that artist to the top-artists.txt which are more likely to be found on discogs
+If none of the provided tracks for a particular artist return a matching discogs profile you can:<br />
+A. Add more/different tracks from that artist to the top-artists.txt which are more likely to be found on discogs<br />
 B. Cleanup any messy tags that may be causing the search to fail ie. remove unnecessary special characters, label tags, extra artists or any 
-other junk that messes up the format outlined at the start of this section.
+other junk that messes up the format outlined at the start of this section.<br />
 
 ### get-youtube-links.js
 
