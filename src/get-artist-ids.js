@@ -45,7 +45,11 @@ const search = async (trackName, isRelease = true) => {
       console.log(
         "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
       );
-      missingArtists.push(trackName);
+
+      // if master lookup fails then neither release or master was found so add to missing
+      if(!isRelease){
+        missingArtists.push(trackName);
+      }
     }
 
     return null;
@@ -86,7 +90,6 @@ const getArtistForTrack = async (
       console.log(
         "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
       );
-      missingArtists.push(`${artistLookup} - ${trackLookup}`);
     }
   }
 };
@@ -106,43 +109,64 @@ const start = async () => {
   }
 
   const artistIDs = [];
+  let prevArtist = null;
 
   // loop through each track and process
   for (let i = 0; i < trackNames.length; i++) {
-    console.log(`------------"${trackNames[i]}"-------------`);
+    if (trackNames[i] && trackNames[i].trim() !== "") {
+      const thisArtist = trackNames[i].split(" - ")[0].toLowerCase();
 
-    const exampleRelease = await search(trackNames[i]);
-    let artist;
-    let nameSplit = trackNames[i].split(" - ");
+      // if the last artist lookup failed for this artist, look them up again using the new trackname
+      const exception =
+        missingArtists.length > 0 &&
+        missingArtists[missingArtists.length - 1]
+          .split(" - ")[0]
+          .toLowerCase() === thisArtist;
 
-    // get discogs artist from example release
-    if (exampleRelease) {
-      artist = await getArtistForTrack(
-        exampleRelease.id,
-        nameSplit[0],
-        nameSplit[1]
-      );
-    } else {
-      const exampleMaster = await search(trackNames[i]);
+      if (exception) {
+        missingArtists.pop();
+      }
 
-      if (exampleMaster) {
-        artist = await getArtistForTrack(
-          exampleMaster.id,
-          nameSplit[0],
-          nameSplit[1]
-        );
+      if (exception || thisArtist !== prevArtist) {
+        console.log(`------------"${trackNames[i]}"-------------`);
+
+        const exampleRelease = await search(trackNames[i]);
+        let artist;
+        let nameSplit = trackNames[i].split(" - ");
+
+        // get discogs artist from example release
+        if (exampleRelease) {
+          artist = await getArtistForTrack(
+            exampleRelease.id,
+            nameSplit[0],
+            nameSplit[1]
+          );
+        } else {
+          const exampleMaster = await search(trackNames[i], false);
+
+          if (exampleMaster) {
+            artist = await getArtistForTrack(
+              exampleMaster.id,
+              nameSplit[0],
+              nameSplit[1],
+              false
+            );
+          }
+        }
+
+        if (artist) {
+          console.log("https://www.discogs.com/artist/" + artist.id);
+          artistIDs.push(artist.id);
+        }
       }
     }
 
-    if (artist) {
-      console.log("https://www.discogs.com/artist/" + artist.id);
-      artistIDs.push(artist.id);
-    }
+    prevArtist = trackNames[i].split(" - ")[0].toLowerCase();
   }
 
   // write all discogs artist ids file
   try {
-    await fs.writeFileSync("artist-ids.txt", artistIDs.join('\r\n'),{
+    await fs.writeFileSync("artist-ids.txt", artistIDs.join("\r\n"), {
       encoding: "utf8",
     });
   } catch (e) {
@@ -150,7 +174,7 @@ const start = async () => {
   }
 
   console.log(`There were ${missingArtists.length} missing artists:`);
-  console.log(missingArtists.join('\r\n'));
+  console.log(missingArtists.join("\r\n"));
 };
 
 start().then();

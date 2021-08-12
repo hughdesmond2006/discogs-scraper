@@ -1,13 +1,11 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const youtube = require("@googleapis/youtube");
 const { google } = require("googleapis");
 const { authenticate } = require("@google-cloud/local-auth");
 
 // playlist ID (grab from landing page of the playlist you want to add to)
 const PLAYLIST_ID = "PLkwrrMu_X--vXa_3JL536bzEaXt5bZhQv";
-//const PLAYLIST_ID = "PLBCF2DAC6FFB574DE";
 const API_KEY = "AIzaSyCNtAVWujb1CVGYg9hv40aYPR0qKweJkt8";
 const PATH_TO_SERVICE_ACCOUNT_JSON_FILE =
   "../src/client_secret_168306323191-h3n1fq248vlb2u94gclvmfdse8job6iu.apps.googleusercontent.com.json";

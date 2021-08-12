@@ -19,7 +19,7 @@
     "web-vitals": "^1.0.1"
   },
   "scripts": {
-    "run": "node src/get-artist-ids.js",
+    "run": "node src/get-artist-ids.js && node src/get-youtube-links.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

@@ -1,11 +1,18 @@
 const axios = require("axios");
 const fs = require("fs");
 
-// filters
-const START_YEAR = 2020;
-const INCLUDE_OTHER_COMPILATION_TRACKS = false;
+// filters - set to a filter to null/undefined if you want it to be ignored
+const EXACT_YEAR = 2021;
+const EXACT_MONTH = null; // shorthand string EG. 'Mar'
+const MIN_YEAR = null;
 const MIN_RATING = 4.2;
 const MIN_RATE_COUNT = 10;
+
+// set this to true to take tracks from other artists on compilation releases
+const INCLUDE_OTHER_COMPILATION_TRACKS = false;
+
+// set this to false to allow releases with undefined release month to pass the filter
+const MONTH_FILTER_STRICT_MODE = true;
 
 const authString =
   "&key=fohKBqcUfBoyVJIGqiAz&secret=rxyNgwUPNcEdhjhayugWYUQfaarjKSyh";
@@ -29,42 +36,102 @@ const apiBreak = async (e) => {
   return false;
 };
 
-const getArtistReleases = async (artistIDs) => {
-  // loop through each artist and get all releases for them
-  for (let i = 0; i < artistIDs.length; i++) {
-    if (artistIDs[i].trim() !== "") {
-      try {
-        const res = await axios(
-          `https://api.discogs.com/artists/${artistIDs[i]}/releases?sort=year&sort_order=desc&per_page=1000` +
-            authString
+const getArtistReleases = async (artistID, i) => {
+  try {
+    const res = await axios(
+      `https://api.discogs.com/artists/${artistID}/releases?sort=year&sort_order=desc&per_page=1000` +
+        authString
+    );
+
+    console.log(`\n~~~~~~~~~~~ ${i + 1}. artist ${artistID} ~~~~~~~~~~~~~\n`);
+
+    const all = res.data.releases;
+
+    // loop through each release and get all videos for them
+    for (let j = 0; j < all.length; j++) {
+      // ignore releases for irrelevant year
+      if (
+        (EXACT_YEAR && all[j].year !== EXACT_YEAR) ||
+        (MIN_YEAR && all[j].year < MIN_YEAR)
+      ) {
+        break;
+      }
+
+      // ignore releases for irrelevant month
+      if (EXACT_MONTH) {
+        const releaseDate = await getReleaseDate(
+          all[j].id,
+          all[j].type === "release"
         );
 
-        console.log(`\n~~~~~~~~~~~ artist ${artistIDs[i]} ~~~~~~~~~~~~~\n`);
-
-        const all = res.data.releases;
-
-        // loop through each release and get all videos for them
-        for (let j = 0; j < all.length; j++) {
-          if (all[j].year < START_YEAR) {
+        if (MONTH_FILTER_STRICT_MODE) {
+          // if no release date is found it will skip the release in strict mode
+          if (
+            !releaseDate ||
+            !releaseDate.toLowerCase().includes(EXACT_MONTH.toLowerCase())
+          ) {
             break;
           }
-
-          console.log(`release "${all[j].title}" ${all[j].year} ${all[j].id}`);
-
-          if (all[j].type === "master") {
-            await getVideos(all[j].id, artistIDs[i], false);
-          } else {
-            await getVideos(all[j].id, artistIDs[i]);
+        } else {
+          // if no release date is found in non-strict mode it will add the release anyway
+          if (
+            releaseDate &&
+            !releaseDate.toLowerCase().includes(EXACT_MONTH.toLowerCase())
+          ) {
+            break;
           }
         }
-      } catch (e) {
-        if (await apiBreak(e)) {
-          // try again after wait
-          return await getArtistReleases(artistIDs);
-        } else {
-          console.log(e);
-        }
       }
+
+      console.log(`release "${all[j].title}" ${all[j].year} ${all[j].id}`);
+
+      if (all[j].type === "master") {
+        await getVideos(all[j].id, artistID, false);
+      } else {
+        await getVideos(all[j].id, artistID);
+      }
+    }
+  } catch (e) {
+    if (await apiBreak(e)) {
+      // try again after wait
+      return await getArtistReleases(artistID, i);
+    } else {
+      console.log(e);
+    }
+  }
+};
+
+const processArtistReleases = async (artistIDs) => {
+  // loop through each artist and get all releases for them
+  for (let i = 0; i < artistIDs.length; i++) {
+    // if its an empty or repeat id dont process it
+    if (artistIDs[i] && artistIDs[i].trim() !== "") {
+      if (i === 0 || artistIDs[i] !== artistIDs[i - 1]) {
+        await getArtistReleases(artistIDs[i], i);
+      }
+    } else {
+      console.log('skipping duplicate artist ID...');
+    }
+  }
+};
+
+const getReleaseDate = async (id, isRelease = true) => {
+  try {
+    const res = await axios(
+      `https://api.discogs.com/${
+        isRelease ? "releases" : "masters"
+      }/${id}?per_page=1000` + authString
+    );
+
+    return res.data.released_formatted;
+  } catch (e) {
+    if (await apiBreak(e)) {
+      // try again after wait
+      return await getReleaseDate(id, isRelease);
+    } else {
+      console.log(e);
+
+      return null;
     }
   }
 };
@@ -101,8 +168,8 @@ const getVideos = async (id, artistID, isRelease = true) => {
     }
 
     if (
-      res.data.community.rating.average < MIN_RATING ||
-      res.data.community.rating.count < MIN_RATE_COUNT
+      (MIN_RATING && res.data.community.rating.average < MIN_RATING) ||
+      (MIN_RATE_COUNT && res.data.community.rating.count < MIN_RATE_COUNT)
     ) {
       failedRating++;
       console.log(
@@ -143,7 +210,7 @@ const getVideos = async (id, artistID, isRelease = true) => {
         (artistName && all[j].title.toLowerCase().includes(artistName)) ||
         (artistAnv && all[j].title.toLowerCase().includes(artistAnv))
       ) {
-        console.log(`video "${all[j].title}" ${all[j].uri}`);
+        console.log(`video added "${all[j].title}" ${all[j].uri}`);
         youtubeLinks.push(all[j].uri);
       }
     }
@@ -174,7 +241,7 @@ const start = async () => {
     console.log(e);
   }
 
-  await getArtistReleases(artistIDs);
+  await processArtistReleases(artistIDs);
 
   // write all YT links to file
   try {
@@ -197,7 +264,9 @@ const start = async () => {
     ).toFixed(2)}`
   );
 
-  console.log(`\n${noRating + failedRating} / ${releaseCount} releases were ignored`);
+  console.log(
+    `\n${noRating + failedRating} / ${releaseCount} releases were ignored`
+  );
   console.log(`${noRating} releases ignored for no ratings`);
   console.log(`${failedRating} releases ignored for bad ratings`);
 };
