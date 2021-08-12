@@ -13,7 +13,9 @@ In the project directory, you can run:
 Provide a simple playlist file of favourite artists named top-artists.txt with the following format:
 
 artist name - track title
+
 artist name - track title
+
 artist name - track title
 
 It will search discogs for the track and from that infer the correct artist profile (to circumvent duplicate artist names). Ids for each 
