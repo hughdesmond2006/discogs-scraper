@@ -1,6 +1,9 @@
 const axios = require("axios");
 const fs = require("fs");
 
+// TODO for x - trackname (z remix): take only artist z
+// TODO try to increase accuracy of finding discogs artist profiles (check failed ones manually)
+
 const authString =
   "&key=fohKBqcUfBoyVJIGqiAz&secret=rxyNgwUPNcEdhjhayugWYUQfaarjKSyh";
 
@@ -99,7 +102,7 @@ const start = async () => {
 
   // read file containing an example track from each fav artist
   try {
-    trackNames = await fs.readFileSync("top-artists.txt", {
+    trackNames = await fs.readFileSync("data\\top-artists.txt", {
       encoding: "utf8",
     });
 
@@ -166,7 +169,7 @@ const start = async () => {
 
   // write all discogs artist ids file
   try {
-    await fs.writeFileSync("artist-ids.txt", artistIDs.join("\r\n"), {
+    await fs.writeFileSync("data\\artist-ids.txt", artistIDs.join("\r\n"), {
       encoding: "utf8",
     });
   } catch (e) {

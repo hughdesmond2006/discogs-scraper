@@ -5,7 +5,7 @@ const start = async () => {
 
   // read file containing an example track from each fav artist
   try {
-    trackNames = await fs.readFileSync("top-artists.txt", {
+    trackNames = await fs.readFileSync("data\\top-artists.txt", {
       encoding: "utf8",
     });
 
@@ -30,7 +30,7 @@ const start = async () => {
 
   // write tracks back to file
   try {
-    await fs.writeFileSync("top-artists.txt", deduplicated.join('\r\n'),{
+    await fs.writeFileSync("data\\top-artists.txt", deduplicated.join('\r\n'),{
       encoding: "utf8",
     });
   } catch (e) {
